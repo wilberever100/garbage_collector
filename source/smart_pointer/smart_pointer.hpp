@@ -12,6 +12,8 @@ template <typename Type>
 class SmartPointer {
  private:
   Type *resource_;
+  size_t *count;
+
 
  public:
   /* Constructor: SmartPointer(Type* resource=NULL)
@@ -24,6 +26,7 @@ class SmartPointer {
    * recurso no administre ningún recurso.
    */
   explicit SmartPointer(Type *resource) :resource_(resource) {
+    count = new size_t(1);
   }
 
   /* Destructor: ~SmartPointer();
@@ -34,6 +37,13 @@ class SmartPointer {
    * al recurso.
    */
   ~SmartPointer() {
+    if (count) {
+      (*count)--;
+      if (*count == 0) {
+        delete resource_;
+        delete count;
+      }
+    }
   }
 
   /* SmartPointer operadores de "des-referencia"(dereference)
@@ -42,8 +52,14 @@ class SmartPointer {
    * ------------------------------------------------------------
    * Permite al SmartPointer comportarse como si fuera un puntero.
    */
-  Type &operator*() const { return Type(0); }
-  Type *operator->() const { return nullptr; }
+  Type &operator*() const { 
+      return *resource_;    
+      //return Type(0); 
+  }
+  Type *operator->() const {
+    return resource_;
+      //return nullptr;
+  }
 
   /* Funciones de copia
    * Uso: SmartPointer<string> ptr=existingPointer;
@@ -54,12 +70,48 @@ class SmartPointer {
    * (deallocated).
    */
   SmartPointer &operator=(const SmartPointer &other) {
+    if (this != &other) {
+      if (count) {
+        (*count)--;
+        if (*count == 0) {
+          delete resource_;
+          delete count;
+        }
+      }
+      this->count = other.count;
+      (*count)++;
+      this->resource_ = other.resource_;
+    }
+
     return *this;
   }
   SmartPointer &operator=(Type *other) {
+
+    if (count) {
+      (*count)--;
+      if (*count == 0) {
+        delete resource_;
+        delete count;
+      }
+    }
+    
+    count = new size_t(1);
+    this->resource_ = other;
+    
     return *this;
   }
   SmartPointer(const SmartPointer &other) {
+    
+      if (other.count) {
+        this->count = other.count;
+        this->resource_ = other.resource_;
+        (*count)++;
+      } else {
+        this->count = nullptr;
+        this->resource_ = nullptr;
+      }   
+      
+      
   }
 
   /* Helper Function: Obtener recurso.
@@ -67,14 +119,19 @@ class SmartPointer {
    * ------------------------------------------------------------
    * Retorna una variable puntero al recurso administrado.
    */
-  Type *GetPointer() const { return nullptr; }
+  Type *GetPointer() const {
+
+    return resource_;
+  }
 
   /* Helper Function: Obtiene conteo
    * Uso: if (ptr.GetReferenceCount()==1) // Única referencia
    * ------------------------------------------------------------
    * Retorna el número de referencias apuntando al recurso.
    */
-  size_t GetReferenceCount() const { return 0; }
+  size_t GetReferenceCount() const {
+    return *count;
+  }
 
   /* Helper Function: se des-asocia del recurso;
    * Uso: ptr.Detach();
@@ -83,6 +140,15 @@ class SmartPointer {
    * memoria si es necesario.
    */
   void Detach() {
+    if (this->count) {
+      (*count)--;
+      if (*count == 0) {
+        delete resource_;
+        delete count;
+      }
+    }
+    this->resource_ = nullptr;
+    this->count = nullptr;
   }
 };
 
